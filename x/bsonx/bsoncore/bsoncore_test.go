@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/bson/bsontype"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
 )
 
 func noerr(t *testing.T, err error) {

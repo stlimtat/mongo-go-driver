@@ -16,16 +16,16 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/mongo"
+	"github.com/stlimtat/mongo-go-driver/mongo/description"
+	"github.com/stlimtat/mongo-go-driver/mongo/options"
+	"github.com/stlimtat/mongo-go-driver/mongo/readpref"
+	"github.com/stlimtat/mongo-go-driver/mongo/writeconcern"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/connstring"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/ocsp"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/topology"
 )
 
 const (

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
 )
 
 // rsrc is a mock resource used in resource pool tests.

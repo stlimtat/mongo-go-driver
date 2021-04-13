@@ -10,10 +10,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/mongo"
+	"github.com/stlimtat/mongo-go-driver/mongo/gridfs"
+	"github.com/stlimtat/mongo-go-driver/mongo/options"
 )
 
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity

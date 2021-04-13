@@ -12,13 +12,13 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"github.com/stlimtat/mongo-go-driver/event"
+	"github.com/stlimtat/mongo-go-driver/mongo/description"
+	"github.com/stlimtat/mongo-go-driver/mongo/readconcern"
+	"github.com/stlimtat/mongo-go-driver/mongo/readpref"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/session"
 )
 
 // Distinct performs a distinct operation.

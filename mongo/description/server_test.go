@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/tag"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/mongo/address"
+	"github.com/stlimtat/mongo-go-driver/tag"
 )
 
 func TestServer(t *testing.T) {

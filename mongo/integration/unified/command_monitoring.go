@@ -11,7 +11,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/bson"
 )
 
 type commandMonitoringEvent struct {

@@ -13,15 +13,15 @@ import (
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/event"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/mongo"
+	"github.com/stlimtat/mongo-go-driver/mongo/options"
+	"github.com/stlimtat/mongo-go-driver/mongo/readconcern"
+	"github.com/stlimtat/mongo-go-driver/mongo/readpref"
+	"github.com/stlimtat/mongo-go-driver/mongo/writeconcern"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
 )
 
 var (

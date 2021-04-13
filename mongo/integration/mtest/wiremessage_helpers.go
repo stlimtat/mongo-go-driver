@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/wiremessage"
 )
 
 func copyBytes(original []byte) []byte {

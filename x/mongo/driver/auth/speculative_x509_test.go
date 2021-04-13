@@ -11,11 +11,11 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/mongo/address"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/drivertest"
 )
 
 var (

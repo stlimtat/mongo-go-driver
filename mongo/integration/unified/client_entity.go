@@ -12,13 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/event"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil"
+	"github.com/stlimtat/mongo-go-driver/mongo"
+	"github.com/stlimtat/mongo-go-driver/mongo/integration/mtest"
+	"github.com/stlimtat/mongo-go-driver/mongo/options"
+	"github.com/stlimtat/mongo-go-driver/mongo/readconcern"
 )
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test

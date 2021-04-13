@@ -16,16 +16,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/event"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	testhelpers "github.com/stlimtat/mongo-go-driver/internal/testutil/helpers"
+	"github.com/stlimtat/mongo-go-driver/mongo/address"
+	"github.com/stlimtat/mongo-go-driver/mongo/description"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/connstring"
 )
 
 type response struct {

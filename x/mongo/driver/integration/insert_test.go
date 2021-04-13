@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/operation"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/topology"
 )
 
 func TestInsert(t *testing.T) {

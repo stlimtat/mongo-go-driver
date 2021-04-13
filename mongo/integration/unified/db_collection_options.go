@@ -9,8 +9,8 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/mongo/options"
 )
 
 type dbOrCollectionOptions struct {

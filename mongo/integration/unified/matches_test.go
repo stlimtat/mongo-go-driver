@@ -11,10 +11,10 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/bson/bsontype"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestMatches(t *testing.T) {

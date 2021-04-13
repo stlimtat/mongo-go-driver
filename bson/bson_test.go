@@ -16,11 +16,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/bson/bsoncodec"
+	"github.com/stlimtat/mongo-go-driver/bson/bsonoptions"
+	"github.com/stlimtat/mongo-go-driver/bson/bsontype"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func noerr(t *testing.T, err error) {
