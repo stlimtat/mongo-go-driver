@@ -12,13 +12,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/stlimtat/mongo-go-driver/bson"
-	"github.com/stlimtat/mongo-go-driver/event"
-	"github.com/stlimtat/mongo-go-driver/internal/testutil"
-	"github.com/stlimtat/mongo-go-driver/mongo"
-	"github.com/stlimtat/mongo-go-driver/mongo/integration/mtest"
-	"github.com/stlimtat/mongo-go-driver/mongo/options"
-	"github.com/stlimtat/mongo-go-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
@@ -26,31 +27,44 @@ import (
 type clientEntity struct {
 	*mongo.Client
 
-	recordEvents    atomic.Value
-	started         []*event.CommandStartedEvent
-	succeeded       []*event.CommandSucceededEvent
-	failed          []*event.CommandFailedEvent
-	ignoredCommands map[string]struct{}
+	recordEvents       atomic.Value
+	started            []*event.CommandStartedEvent
+	succeeded          []*event.CommandSucceededEvent
+	failed             []*event.CommandFailedEvent
+	pooled             []*event.PoolEvent
+	ignoredCommands    map[string]struct{}
+	numConnsCheckedOut int32
+
+	// These should not be changed after the clientEntity is initialized
+	observedEvents map[monitoringEventType]struct{}
+	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store it
+
+	entityMap *EntityMap
 }
 
-func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*clientEntity, error) {
+func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
 	entity := &clientEntity{
 		// The "configureFailPoint" command should always be ignored.
 		ignoredCommands: map[string]struct{}{
 			"configureFailPoint": {},
 		},
+		observedEvents: make(map[monitoringEventType]struct{}),
+		storedEvents:   make(map[monitoringEventType][]string),
+		entityMap:      em,
 	}
 	entity.setRecordEvents(true)
 
 	// Construct a ClientOptions instance by first applying the cluster URI and then the URIOptions map to ensure that
 	// the options specified in the test file take precedence.
-	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
+	uri := getURIForClient(entityOptions)
+	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
 			return nil, fmt.Errorf("error parsing URI options: %v", err)
 		}
 	}
-	// UseMultipleMongoses is only relevant if we're connected to a sharded cluster. Options changes and validation are
+
+	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
 	// only required if the option is explicitly set. If it's unset, we make no changes because the cluster URI already
 	// includes all nodes and we don't enforce any limits on the number of nodes.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && entityOptions.UseMultipleMongoses != nil {
@@ -58,25 +72,37 @@ func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*client
 			return nil, err
 		}
 	}
-	if entityOptions.ObserveEvents != nil {
+
+	if entityOptions.ObserveEvents != nil || entityOptions.StoreEventsAsEntities != nil {
 		// Configure a command monitor that listens for the specified event types. We don't take the IgnoredCommands
 		// option into account here because it can be overridden at the test level after the entity has already been
 		// created, so we store the events for now but account for it when iterating over them later.
-		monitor := &event.CommandMonitor{}
+		commandMonitor := &event.CommandMonitor{
+			Started:   entity.processStartedEvent,
+			Succeeded: entity.processSucceededEvent,
+			Failed:    entity.processFailedEvent,
+		}
+		poolMonitor := &event.PoolMonitor{
+			Event: entity.processPoolEvent,
+		}
+		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor)
 
-		for _, eventType := range entityOptions.ObserveEvents {
-			switch eventType {
-			case "commandStartedEvent":
-				monitor.Started = entity.processStartedEvent
-			case "commandSucceededEvent":
-				monitor.Succeeded = entity.processSucceededEvent
-			case "commandFailedEvent":
-				monitor.Failed = entity.processFailedEvent
-			default:
-				return nil, fmt.Errorf("unrecognized event type %s", eventType)
+		for _, eventTypeStr := range entityOptions.ObserveEvents {
+			eventType, ok := monitoringEventTypeFromString(eventTypeStr)
+			if !ok {
+				return nil, fmt.Errorf("unrecognized observed event type %q", eventTypeStr)
+			}
+			entity.observedEvents[eventType] = struct{}{}
+		}
+		for _, eventsAsEntity := range entityOptions.StoreEventsAsEntities {
+			for _, eventTypeStr := range eventsAsEntity.Events {
+				eventType, ok := monitoringEventTypeFromString(eventTypeStr)
+				if !ok {
+					return nil, fmt.Errorf("unrecognized stored event type %q", eventTypeStr)
+				}
+				entity.storedEvents[eventType] = append(entity.storedEvents[eventType], eventsAsEntity.EventListID)
 			}
 		}
-		clientOpts.SetMonitor(monitor)
 	}
 	if entityOptions.ServerAPIOptions != nil {
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
@@ -96,7 +122,22 @@ func newClientEntity(ctx context.Context, entityOptions *entityOptions) (*client
 	return entity, nil
 }
 
-func (c *clientEntity) StopListeningForEvents() {
+func getURIForClient(opts *entityOptions) string {
+	if mtest.ClusterTopologyKind() != mtest.LoadBalanced {
+		return mtest.ClusterURI()
+	}
+
+	// For load-balanced deployments, UseMultipleMongoses is used to determine the load balancer URI. If set to false,
+	// the LB fronts a single server. If unset or explicitly true, the LB fronts multiple mongos servers.
+	switch {
+	case opts.UseMultipleMongoses != nil && !*opts.UseMultipleMongoses:
+		return mtest.SingleMongosLoadBalancerURI()
+	default:
+		return mtest.MultiMongosLoadBalancerURI()
+	}
+}
+
+func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
@@ -133,21 +174,146 @@ func (c *clientEntity) failedEvents() []*event.CommandFailedEvent {
 	return events
 }
 
+func (c *clientEntity) poolEvents() []*event.PoolEvent {
+	return c.pooled
+}
+
+func (c *clientEntity) numberConnectionsCheckedOut() int32 {
+	return c.numConnsCheckedOut
+}
+
+func getSecondsSinceEpoch() float64 {
+	return float64(time.Now().UnixNano()) / float64(time.Second/time.Nanosecond)
+}
+
 func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.CommandStartedEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents[commandStartedEvent]; ok {
 		c.started = append(c.started, evt)
+	}
+	eventListIDs, ok := c.storedEvents[commandStartedEvent]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandStartedEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("databaseName", evt.DatabaseName).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
 func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.CommandSucceededEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents[commandSucceededEvent]; ok {
 		c.succeeded = append(c.succeeded, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandSucceededEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID)
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
 	}
 }
 
 func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandFailedEvent) {
-	if c.getRecordEvents() {
+	if !c.getRecordEvents() {
+		return
+	}
+	if _, ok := c.observedEvents[commandFailedEvent]; ok {
 		c.failed = append(c.failed, evt)
+	}
+	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
+	if !ok {
+		return
+	}
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", "CommandFailedEvent").
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendInt64("durationNanos", evt.DurationNanos).
+		AppendString("commandName", evt.CommandName).
+		AppendInt64("requestId", evt.RequestID).
+		AppendString("connectionId", evt.ConnectionID).
+		AppendString("failure", evt.Failure)
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
+	}
+	doc := bson.Raw(bsonBuilder.Build())
+	for _, id := range eventListIDs {
+		c.entityMap.appendEventsEntity(id, doc)
+	}
+}
+
+func getPoolEventDocument(evt *event.PoolEvent, eventType monitoringEventType) bson.Raw {
+	bsonBuilder := bsoncore.NewDocumentBuilder().
+		AppendString("name", string(eventType)).
+		AppendDouble("observedAt", getSecondsSinceEpoch()).
+		AppendString("address", evt.Address)
+	if evt.ConnectionID != 0 {
+		bsonBuilder.AppendString("connectionId", fmt.Sprint(evt.ConnectionID))
+	}
+	if evt.PoolOptions != nil {
+		optionsDoc := bsoncore.NewDocumentBuilder().
+			AppendString("maxPoolSize", fmt.Sprint(evt.PoolOptions.MaxPoolSize)).
+			AppendString("minPoolSize", fmt.Sprint(evt.PoolOptions.MinPoolSize)).
+			AppendString("maxIdleTimeMS", fmt.Sprint(evt.PoolOptions.WaitQueueTimeoutMS)).
+			Build()
+		bsonBuilder.AppendDocument("poolOptions", optionsDoc)
+	}
+	if evt.Reason != "" {
+		bsonBuilder.AppendString("reason", evt.Reason)
+	}
+	if evt.ServiceID != nil {
+		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
+	}
+	return bson.Raw(bsonBuilder.Build())
+}
+
+func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	// Update the connection counter. This happens even if we're not storing any events.
+	switch evt.Type {
+	case event.GetSucceeded:
+		c.numConnsCheckedOut++
+	case event.ConnectionReturned:
+		c.numConnsCheckedOut--
+	}
+
+	eventType := monitoringEventTypeFromPoolEvent(evt)
+	if _, ok := c.observedEvents[eventType]; ok {
+		c.pooled = append(c.pooled, evt)
+	}
+	if eventListIDs, ok := c.storedEvents[eventType]; ok {
+		eventBSON := getPoolEventDocument(evt, eventType)
+		for _, id := range eventListIDs {
+			c.entityMap.appendEventsEntity(id, eventBSON)
+		}
 	}
 }
 
@@ -167,8 +333,14 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 
 	for key, value := range uriOpts {
 		switch key {
+		case "appname":
+			clientOpts.SetAppName(value.(string))
 		case "heartbeatFrequencyMS":
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
+		case "loadBalanced":
+			clientOpts.SetLoadBalanced(value.(bool))
+		case "maxPoolSize":
+			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
 		case "readConcernLevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
 		case "retryReads":
@@ -178,6 +350,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "w":
 			wc.W = value
 			wcSet = true
+		case "waitQueueTimeoutMS":
+			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}

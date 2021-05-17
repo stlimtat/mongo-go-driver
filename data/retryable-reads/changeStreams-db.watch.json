@@ -9,7 +9,8 @@
     {
       "minServerVersion": "4.1.7",
       "topology": [
-        "sharded"
+        "sharded",
+        "load-balanced"
       ]
     }
   ],
@@ -38,9 +39,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },
@@ -77,9 +76,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },
@@ -93,9 +90,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },
@@ -136,9 +131,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },
@@ -176,9 +169,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },
@@ -192,9 +183,7 @@
               "cursor": {},
               "pipeline": [
                 {
-                  "$changeStream": {
-                    "fullDocument": "default"
-                  }
+                  "$changeStream": {}
                 }
               ]
             },

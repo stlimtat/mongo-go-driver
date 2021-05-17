@@ -43,15 +43,17 @@ var testContext struct {
 	// shardedReplicaSet will be true if we're connected to a sharded cluster and each shard is backed by a replica set.
 	// We track this as a separate boolean rather than setting topoKind to ShardedReplicaSet because a general
 	// "Sharded" constraint in a test should match both Sharded and ShardedReplicaSet.
-	shardedReplicaSet bool
-	client            *mongo.Client // client used for setup and teardown
-	serverVersion     string
-	authEnabled       bool
-	sslEnabled        bool
-	enterpriseServer  bool
-	dataLake          bool
-	requireAPIVersion bool
-	serverParameters  bson.Raw
+	shardedReplicaSet           bool
+	client                      *mongo.Client // client used for setup and teardown
+	serverVersion               string
+	authEnabled                 bool
+	sslEnabled                  bool
+	enterpriseServer            bool
+	dataLake                    bool
+	requireAPIVersion           bool
+	serverParameters            bson.Raw
+	singleMongosLoadBalancerURI string
+	multiMongosLoadBalancerURI  string
 }
 
 func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.Client, error) {
@@ -60,14 +62,23 @@ func setupClient(cs connstring.ConnString, opts *options.ClientOptions) (*mongo.
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
-	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority))
+	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
+	// can be inconsistent when multiple mongoses are used
+	return mongo.Connect(Background, opts.ApplyURI(cs.Original).SetWriteConcern(wcMajority).SetHosts(cs.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
-func Setup() error {
+func Setup(setupOpts ...*SetupOptions) error {
+	opts := MergeSetupOptions(setupOpts...)
 	var err error
-	testContext.connString, err = getConnString()
+
+	switch {
+	case opts.URI != nil:
+		testContext.connString, err = connstring.ParseAndValidate(*opts.URI)
+	default:
+		testContext.connString, err = getClusterConnString()
+	}
 	if err != nil {
 		return fmt.Errorf("error getting connection string: %v", err)
 	}
@@ -130,6 +141,8 @@ func Setup() error {
 		testContext.topoKind = ReplicaSet
 	case description.Sharded:
 		testContext.topoKind = Sharded
+	case description.LoadBalanced:
+		testContext.topoKind = LoadBalanced
 	default:
 		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())
 	}
@@ -165,14 +178,20 @@ func Setup() error {
 		}
 	}
 
-	if testContext.topoKind == ReplicaSet && CompareServerVersions(testContext.serverVersion, "4.0") >= 0 {
-		err = testContext.client.Database("admin").RunCommand(Background, bson.D{
-			{"setParameter", 1},
-			{"transactionLifetimeLimitSeconds", 3},
-		}).Err()
-		if err != nil {
-			return fmt.Errorf("error setting transactionLifetimeLimitSeconds: %v", err)
+	// For load balanced clusters, retrieve the required LB URIs and add additional information (e.g. TLS options) to
+	// them if necessary.
+	if testContext.topoKind == LoadBalanced {
+		singleMongosURI := os.Getenv("SINGLE_MONGOS_LB_URI")
+		if singleMongosURI == "" {
+			return errors.New("SINGLE_MONGOS_LB_URI must be set when running against load balanced clusters")
 		}
+		testContext.singleMongosLoadBalancerURI = addNecessaryParamsToURI(singleMongosURI)
+
+		multiMongosURI := os.Getenv("MULTI_MONGOS_LB_URI")
+		if multiMongosURI == "" {
+			return errors.New("MULTI_MONGOS_LB_URI must be set when running against load balanced clusters")
+		}
+		testContext.multiMongosLoadBalancerURI = addNecessaryParamsToURI(multiMongosURI)
 	}
 
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
@@ -281,15 +300,19 @@ func addCompressors(uri string) string {
 	return addOptions(uri, "compressors=", comp)
 }
 
-// ConnString gets the globally configured connection string.
-func getConnString() (connstring.ConnString, error) {
+// getClusterConnString gets the globally configured connection string.
+func getClusterConnString() (connstring.ConnString, error) {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb://localhost:27017"
 	}
-	uri = addTLSConfig(uri)
-	uri = addCompressors(uri)
+	uri = addNecessaryParamsToURI(uri)
 	return connstring.ParseAndValidate(uri)
+}
+
+func addNecessaryParamsToURI(uri string) string {
+	uri = addTLSConfig(uri)
+	return addCompressors(uri)
 }
 
 // CompareServerVersions compares two version number strings (i.e. positive integers separated by

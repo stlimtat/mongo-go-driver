@@ -15,20 +15,25 @@ import (
 )
 
 type operation struct {
-	Name           string         `bson:"name"`
-	Object         string         `bson:"object"`
-	Arguments      bson.Raw       `bson:"arguments"`
-	ExpectedError  *expectedError `bson:"expectError"`
-	ExpectedResult *bson.RawValue `bson:"expectResult"`
-	ResultEntityID *string        `bson:"saveResultAsEntity"`
+	Name                 string         `bson:"name"`
+	Object               string         `bson:"object"`
+	Arguments            bson.Raw       `bson:"arguments"`
+	IgnoreResultAndError bool           `bson:"ignoreResultAndError"`
+	ExpectedError        *expectedError `bson:"expectError"`
+	ExpectedResult       *bson.RawValue `bson:"expectResult"`
+	ResultEntityID       *string        `bson:"saveResultAsEntity"`
 }
 
 // execute runs the operation and verifies the returned result and/or error. If the result needs to be saved as
 // an entity, it also updates the entityMap associated with ctx to do so.
-func (op *operation) execute(ctx context.Context) error {
-	res, err := op.run(ctx)
+func (op *operation) execute(ctx context.Context, loopDone <-chan struct{}) error {
+	res, err := op.run(ctx, loopDone)
 	if err != nil {
 		return fmt.Errorf("execution failed: %v", err)
+	}
+
+	if op.IgnoreResultAndError {
+		return nil
 	}
 
 	if err := verifyOperationError(ctx, op.ExpectedError, res); err != nil {
@@ -43,10 +48,10 @@ func (op *operation) execute(ctx context.Context) error {
 	return nil
 }
 
-func (op *operation) run(ctx context.Context) (*operationResult, error) {
+func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operationResult, error) {
 	if op.Object == "testRunner" {
 		// testRunner operations don't have results or expected errors, so we use newEmptyResult to fake a result.
-		return newEmptyResult(), executeTestRunnerOperation(ctx, op)
+		return newEmptyResult(), executeTestRunnerOperation(ctx, op, loopDone)
 	}
 
 	// Special handling for the "session" field because it applies to all operations.
@@ -75,7 +80,7 @@ func (op *operation) run(ctx context.Context) (*operationResult, error) {
 		return executeStartTransaction(ctx, op)
 	case "withTransaction":
 		// executeWithTransaction internally verifies results/errors for each operation, so it doesn't return a result.
-		return newEmptyResult(), executeWithTransaction(ctx, op)
+		return newEmptyResult(), executeWithTransaction(ctx, op, loopDone)
 
 	// Client operations
 	case "createChangeStream":
@@ -104,6 +109,8 @@ func (op *operation) run(ctx context.Context) (*operationResult, error) {
 		return executeCountDocuments(ctx, op)
 	case "createIndex":
 		return executeCreateIndex(ctx, op)
+	case "createFindCursor":
+		return executeCreateFindCursor(ctx, op)
 	case "deleteOne":
 		return executeDeleteOne(ctx, op)
 	case "deleteMany":
@@ -124,6 +131,8 @@ func (op *operation) run(ctx context.Context) (*operationResult, error) {
 		return executeInsertMany(ctx, op)
 	case "insertOne":
 		return executeInsertOne(ctx, op)
+	case "listIndexes":
+		return executeListIndexes(ctx, op)
 	case "replaceOne":
 		return executeReplaceOne(ctx, op)
 	case "updateOne":
@@ -139,7 +148,9 @@ func (op *operation) run(ctx context.Context) (*operationResult, error) {
 	case "upload":
 		return executeBucketUpload(ctx, op)
 
-	// Change Stream operations
+	// Cursor operations
+	case "close":
+		return newEmptyResult(), executeClose(ctx, op)
 	case "iterateUntilDocumentOrError":
 		return executeIterateUntilDocumentOrError(ctx, op)
 	default:

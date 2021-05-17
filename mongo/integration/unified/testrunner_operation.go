@@ -9,14 +9,40 @@ package unified
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/stlimtat/mongo-go-driver/bson"
-	"github.com/stlimtat/mongo-go-driver/mongo"
-	"github.com/stlimtat/mongo-go-driver/mongo/integration/mtest"
-	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation) error {
+type loopArgs struct {
+	Operations         []*operation `bson:"operations"`
+	ErrorsEntityID     string       `bson:"storeErrorsAsEntity"`
+	FailuresEntityID   string       `bson:"storeFailuresAsEntity"`
+	SuccessesEntityID  string       `bson:"storeSuccessesAsEntity"`
+	IterationsEntityID string       `bson:"storeIterationsAsEntity"`
+}
+
+func (lp *loopArgs) errorsStored() bool {
+	return lp.ErrorsEntityID != ""
+}
+
+func (lp *loopArgs) failuresStored() bool {
+	return lp.FailuresEntityID != ""
+}
+
+func (lp *loopArgs) successesStored() bool {
+	return lp.SuccessesEntityID != ""
+}
+
+func (lp *loopArgs) iterationsStored() bool {
+	return lp.IterationsEntityID != ""
+}
+
+func executeTestRunnerOperation(ctx context.Context, operation *operation, loopDone <-chan struct{}) error {
 	args := operation.Arguments
 
 	switch operation.Name {
@@ -111,8 +137,109 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation) error
 		coll := lookupString(args, "collectionName")
 		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, false)
+	case "loop":
+		var unmarshaledArgs loopArgs
+		if err := bson.Unmarshal(args, &unmarshaledArgs); err != nil {
+			return fmt.Errorf("error unmarshalling arguments to loopArgs: %v", err)
+		}
+		return executeLoop(ctx, &unmarshaledArgs, loopDone)
+	case "assertNumberConnectionsCheckedOut":
+		clientID := lookupString(args, "client")
+		client, err := entities(ctx).client(clientID)
+		if err != nil {
+			return err
+		}
+
+		expected := int32(lookupInteger(args, "connections"))
+		actual := client.numberConnectionsCheckedOut()
+		if expected != actual {
+			return fmt.Errorf("expected %d connections to be checked out, got %d", expected, actual)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
+	}
+}
+
+func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) error {
+	// setup entities
+	entityMap := entities(ctx)
+	if args.errorsStored() {
+		if err := entityMap.addBSONArrayEntity(args.ErrorsEntityID); err != nil {
+			return err
+		}
+	}
+	if args.failuresStored() {
+		if err := entityMap.addBSONArrayEntity(args.FailuresEntityID); err != nil {
+			return err
+		}
+	}
+	if args.successesStored() {
+		if err := entityMap.addSuccessesEntity(args.SuccessesEntityID); err != nil {
+			return err
+		}
+	}
+	if args.iterationsStored() {
+		if err := entityMap.addIterationsEntity(args.IterationsEntityID); err != nil {
+			return err
+		}
+	}
+
+	for {
+		select {
+		case <-loopDone:
+			return nil
+		default:
+			if args.iterationsStored() {
+				if err := entityMap.incrementIterations(args.IterationsEntityID); err != nil {
+					return err
+				}
+			}
+			var loopErr error
+			for i, operation := range args.Operations {
+				if operation.Name == "loop" {
+					return fmt.Errorf("loop sub-operations should not include loop")
+				}
+				loopErr = operation.execute(ctx, loopDone)
+
+				// if the operation errors, stop this loop
+				if loopErr != nil {
+					// If StoreFailures or StoreErrors is set, continue looping, otherwise break
+					if !args.errorsStored() && !args.failuresStored() {
+						return fmt.Errorf("error running loop operation %v : %v", i, loopErr)
+					}
+					errDoc := bson.Raw(bsoncore.NewDocumentBuilder().
+						AppendString("error", loopErr.Error()).
+						AppendDouble("time", getSecondsSinceEpoch()).
+						Build())
+					var appendErr error
+					switch {
+					case !args.errorsStored(): // store errors as failures if storeErrorsAsEntity isn't specified
+						appendErr = entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+					case !args.failuresStored(): // store failures as errors if storeFailuressAsEntity isn't specified
+						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
+					// errors are test runner errors
+					// TODO GODRIVER-1950: use error types to determine error vs failure instead of depending on the fact that
+					// operation.execute prepends "execution failed" to test runner errors
+					case strings.Contains(loopErr.Error(), "execution failed: "):
+						appendErr = entityMap.appendBSONArrayEntity(args.ErrorsEntityID, errDoc)
+					// failures are if an operation returns an incorrect result or error
+					default:
+						appendErr = entityMap.appendBSONArrayEntity(args.FailuresEntityID, errDoc)
+					}
+					if appendErr != nil {
+						return appendErr
+					}
+					// if a sub-operation errors, restart the loop
+					break
+				}
+				if args.successesStored() {
+					if err := entityMap.incrementSuccesses(args.SuccessesEntityID); err != nil {
+						return err
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -9,7 +9,8 @@
     {
       "minServerVersion": "4.1.7",
       "topology": [
-        "sharded"
+        "sharded",
+        "load-balanced"
       ]
     }
   ],
@@ -59,7 +60,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -76,7 +76,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -116,7 +115,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -133,7 +131,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -173,7 +170,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -190,7 +186,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -230,7 +225,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -247,7 +241,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -287,7 +280,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -304,7 +296,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -344,7 +335,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -361,7 +351,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -401,7 +390,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -418,7 +406,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -458,7 +445,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -475,7 +461,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -515,7 +500,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -532,7 +516,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -572,7 +555,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -589,7 +571,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -629,7 +610,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -646,7 +626,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -687,7 +666,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -704,7 +682,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
@@ -748,7 +725,6 @@
               "pipeline": [
                 {
                   "$changeStream": {
-                    "fullDocument": "default",
                     "allChangesForCluster": true
                   }
                 }
