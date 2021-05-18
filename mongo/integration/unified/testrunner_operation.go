@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/stlimtat/mongo-driver/bson"
-	"github.com/stlimtat/mongo-driver/mongo"
-	"github.com/stlimtat/mongo-driver/mongo/integration/mtest"
-	"github.com/stlimtat/mongo-driver/x/bsonx/bsoncore"
-	"github.com/stlimtat/mongo-driver/x/mongo/driver/session"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/mongo"
+	"github.com/stlimtat/mongo-go-driver/mongo/integration/mtest"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/session"
 )
 
 type loopArgs struct {

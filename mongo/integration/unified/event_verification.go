@@ -11,10 +11,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/stlimtat/mongo-driver/bson"
-	"github.com/stlimtat/mongo-driver/bson/bsontype"
-	"github.com/stlimtat/mongo-driver/bson/primitive"
-	"github.com/stlimtat/mongo-driver/event"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/bson/bsontype"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/event"
 )
 
 var (

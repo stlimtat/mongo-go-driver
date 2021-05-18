@@ -20,10 +20,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stlimtat/mongo-driver/bson"
-	"github.com/stlimtat/mongo-driver/bson/primitive"
-	"github.com/stlimtat/mongo-driver/x/bsonx/bsoncore"
-	"github.com/stlimtat/mongo-driver/x/mongo/driver/auth/internal/awsv4"
+	"github.com/stlimtat/mongo-go-driver/bson"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/auth/internal/awsv4"
 )
 
 type clientState int

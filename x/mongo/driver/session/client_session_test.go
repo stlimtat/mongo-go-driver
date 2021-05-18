@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/stlimtat/mongo-driver/bson/primitive"
-	"github.com/stlimtat/mongo-driver/internal/testutil/assert"
-	testhelpers "github.com/stlimtat/mongo-driver/internal/testutil/helpers"
-	"github.com/stlimtat/mongo-driver/mongo/description"
-	"github.com/stlimtat/mongo-driver/x/bsonx/bsoncore"
-	"github.com/stlimtat/mongo-driver/x/mongo/driver/uuid"
+	"github.com/stlimtat/mongo-go-driver/bson/primitive"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	testhelpers "github.com/stlimtat/mongo-go-driver/internal/testutil/helpers"
+	"github.com/stlimtat/mongo-go-driver/mongo/description"
+	"github.com/stlimtat/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/stlimtat/mongo-go-driver/x/mongo/driver/uuid"
 )
 
 var consistent = true

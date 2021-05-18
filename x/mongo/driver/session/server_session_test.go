@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stlimtat/mongo-driver/internal/testutil/assert"
-	"github.com/stlimtat/mongo-driver/mongo/description"
+	"github.com/stlimtat/mongo-go-driver/internal/testutil/assert"
+	"github.com/stlimtat/mongo-go-driver/mongo/description"
 )
 
 func TestServerSession(t *testing.T) {
